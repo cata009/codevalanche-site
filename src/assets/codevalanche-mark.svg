@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mainWhite" x1="210" y1="190" x2="610" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.55" stop-color="#F6F7FB"/>
+      <stop offset="1" stop-color="#E6E9F2"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="650" y1="205" x2="805" y2="355" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8A7DFF"/>
+      <stop offset="0.5" stop-color="#6C5CFF"/>
+      <stop offset="1" stop-color="#5B4AF7"/>
+    </linearGradient>
+    <linearGradient id="lowerWhite" x1="650" y1="650" x2="800" y2="790" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EEF1F8"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+  <g filter="url(#softShadow)">
+    <path fill="url(#mainWhite)" fill-rule="evenodd" clip-rule="evenodd" d="M278 210 C238 210 206 242 206 282 L206 294 C206 310 193 323 177 323 L170 323 C132 323 102 353 102 391 L102 633 C102 671 132 701 170 701 L177 701 C193 701 206 714 206 730 L206 742 C206 782 238 814 278 814 L544 814 C584 814 616 782 616 742 L616 704 C616 686 602 672 584 672 L310 672 C294 672 282 660 282 644 L282 380 C282 364 294 352 310 352 L584 352 C602 352 616 338 616 320 L616 282 C616 242 584 210 544 210 L278 210Z"/>
+    <rect x="680" y="210" width="154" height="142" rx="38" fill="url(#accent)"/>
+    <rect x="680" y="672" width="154" height="142" rx="38" fill="url(#lowerWhite)"/>
+  </g>
+</svg>
