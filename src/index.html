@@ -16,6 +16,7 @@
     <meta name="twitter:description" content="A focused desktop workspace for real repositories, coding agents, visible changes, and evidence-driven review.">
     <meta name="twitter:image" content="https://codevalanche.com/assets/codevalanche-workspace.png">
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+    <script>(function(){var t="dark";try{var s=localStorage.getItem("codevalanche_theme");if(s==="light"||s==="dark"){t=s}else if(window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches){t="light"}}catch(e){}document.documentElement.setAttribute("data-theme",t)})()</script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
@@ -63,6 +64,10 @@
           <a href="/changelog.html">Changelog</a>
           <a href="#faq">FAQ</a>
         </nav>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to light theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.8v2.2M12 19v2.2M2.8 12h2.2M19 12h2.2M5.5 5.5l1.6 1.6M16.9 16.9l1.6 1.6M18.5 5.5l-1.6 1.6M7.1 16.9l-1.6 1.6"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/></svg>
+        </button>
         <a class="nav-cta" href="#download">Download</a>
         <details class="mobile-nav">
           <summary aria-label="Menu"><span></span><span></span></summary>
@@ -578,7 +583,7 @@
         </div>
       </div>
       <div class="shell footer-bottom">
-        <span>© 2026 Radovar. Codevalanche is a Radovar product.</span>
+        <span>© 2026 Radovar. Codevalanche is a Radovar product. All rights reserved.</span>
         <details class="lang-picker">
           <summary aria-label="Language: English. The app ships in 17 languages.">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2M12 3.4c2.4 2.3 3.6 5.3 3.6 8.6s-1.2 6.3-3.6 8.6c-2.4-2.3-3.6-5.3-3.6-8.6s1.2-6.3 3.6-8.6z"/></svg>
@@ -696,6 +701,19 @@
         if (fine) document.querySelectorAll(".spot").forEach((card) => {
           card.addEventListener("pointermove", (event) => { const rect = card.getBoundingClientRect(); card.style.setProperty("--mx", `${event.clientX - rect.left}px`); card.style.setProperty("--my", `${event.clientY - rect.top}px`) })
         })
+        const THEME_KEY = "codevalanche_theme"
+        const themeToggle = document.querySelector("[data-theme-toggle]")
+        const applyTheme = (theme, persist) => {
+          document.documentElement.setAttribute("data-theme", theme)
+          if (persist) { try { localStorage.setItem(THEME_KEY, theme) } catch {} }
+          themeToggle?.setAttribute("aria-label", theme === "dark" ? "Switch to light theme" : "Switch to dark theme")
+          document.querySelector("meta[name='theme-color']")?.setAttribute("content", theme === "dark" ? "#07090b" : "#f7f9fa")
+          window.dispatchEvent(new CustomEvent("codevalanche-theme"))
+        }
+        themeToggle?.addEventListener("click", () => { const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"; applyTheme(next, true); track("theme_toggled", { theme: next }) })
+        const lightQuery = window.matchMedia("(prefers-color-scheme: light)")
+        lightQuery.addEventListener?.("change", () => { try { if (!localStorage.getItem(THEME_KEY)) applyTheme(lightQuery.matches ? "light" : "dark", false) } catch {} })
+        applyTheme(document.documentElement.getAttribute("data-theme") || "dark", false)
       })()
     </script>
     <script>
@@ -776,8 +794,10 @@
           let particles = []
           let raf = 0
           let running = false
+          let particleRgb = "102, 239, 230"
           const pointer = { x: -9999, y: -9999 }
           const build = () => {
+            particleRgb = (getComputedStyle(document.documentElement).getPropertyValue("--particle-rgb") || "").trim() || "102, 239, 230"
             const w = wrap.clientWidth
             const h = wrap.clientHeight
             if (w < 480 || h < 120) { particles = []; wrap.classList.remove("canvas-on"); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); return }
@@ -837,7 +857,7 @@
               p.y += p.vy
               ctx.beginPath()
               ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
-              ctx.fillStyle = `rgba(102, 239, 230, ${p.a})`
+              ctx.fillStyle = `rgba(${particleRgb}, ${p.a})`
               ctx.fill()
             }
             raf = requestAnimationFrame(step)
@@ -848,6 +868,7 @@
           build()
           let resizeTimer = 0
           window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { build(); if (running) { stop(); start() } }, 180) })
+          window.addEventListener("codevalanche-theme", () => build())
           wrap.addEventListener("pointermove", (event) => { const rect = canvas.getBoundingClientRect(); pointer.x = event.clientX - rect.left; pointer.y = event.clientY - rect.top })
           wrap.addEventListener("pointerleave", () => { pointer.x = -9999; pointer.y = -9999 })
           if ("IntersectionObserver" in window) {
