@@ -1,4 +1,4 @@
-name: Check Codevalanche site
+name: Deploy Codevalanche site
 
 on:
   push:
@@ -7,14 +7,19 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: site-checks
+  group: pages
   cancel-in-progress: true
 
 jobs:
-  check:
+  deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -29,8 +34,10 @@ jobs:
         run: npm test
       - name: Build static site
         run: npm run build
-      - name: Upload validated static build
-        uses: actions/upload-artifact@v4
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: codevalanche-site
           path: ./dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
