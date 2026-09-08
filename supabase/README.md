@@ -1,0 +1,19 @@
+# Supabase account backend
+
+Apply migrations/202609080001_account_service.sql to the existing project, then deploy functions/codevalanche-account with gateway verify_jwt=false. The handler always verifies the Bearer token using the project Auth server, checks its subject and session_id against a service-role-only auth.sessions read, and rejects app-blocked/revoked sessions. Secrets SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are supplied by the Edge runtime; never ship the service key in clients.
+
+GET returns get-account; POST accepts JSON {action,...}. Exact production origins are codevalanche.com, www.codevalanche.com, account.codevalanche.com; native clients may omit Origin. Browsers cannot use arbitrary origins. Body limit 16 KiB, authenticated rate limit 60/min/user, feedback 3/min/user. Auth itself supplies sign-in abuse controls. Rate-limit buckets are per user, not attacker-provided IDs.
+
+Actions: get-account; update-profile {displayName?,bio?}; sign-out-others; revoke-session {sessionId}; request-deletion {confirmation:'DELETE'}; cancel-deletion; consent {analytics:boolean}; feedback {category:'bug'|'idea'|'general',message}; event {eventId:UUID,eventName:'website_view'|'download_clicked'|'app_opened',platform,consent:true}. Events currently require an authenticated user and stored consent. Anonymous website analytics are intentionally not accepted by this endpoint.
+
+get-account includes user {id,email,displayName,bio,emailVerified}, identities in signInMethods, sessions {id,createdAt,lastSeenAt,userAgent,current}, deletion {scheduledFor,status:'pending'} or null, analyticsConsent. Desktop aliases: id, userId, sub, session_id, email, email_verified, display_name, name.
+
+Administrators require server-owned auth.users.raw_app_meta_data.codevalanche_admin=true. User metadata never grants privileges. Admin actions: admin-list-users {page?} (50/page), admin-block-user / admin-unblock-user {userId}, admin-feedback (latest 100), admin-analytics (latest 1000 event rows, explicitly bounded rather than an all-time total). Provision an administrator only through trusted Supabase administration. Self-blocking is refused. No administrator credentials are in the website or desktop.
+
+All application tables have RLS enabled and no anon/authenticated grants or policies: clients cannot bypass the live-session and actor checks by using PostgREST directly. Service role performs the actor-scoped operations. Auth schema is read only through the narrowly scoped RPC; no trigger or mutation of auth internals is installed. Single-session revocation denies this application immediately; it does not terminate that refresh token at the Auth service. Sign-out-others uses Supabase Auth's official revocation API.
+
+Deletion is a recorded request with a 30-day grace date and cancellation. No purge scheduler is installed, and the service does not promise automatic deletion. A reviewed retention policy and verified purge job must be added before automatic deletion is advertised. Analytics and feedback history are currently bounded per response, with no scheduled retention cleanup. No paid service is required.
+
+Validation: node --test supabase/tests/*.test.mjs (Node 24); npx deno check --node-modules-dir=auto supabase/functions/codevalanche-account/index.ts. Handler security tests mock the service boundary; live migration execution, live auth/session revocation and RLS smoke tests remain deployment checks.
+
+Sources: https://supabase.com/docs/guides/auth/sessions (session_id vs auth.sessions), https://supabase.com/docs/reference/javascript/auth-admin-signout (official others scope), https://supabase.com/docs/guides/auth/managing-user-data (JWT invalidation and Auth user management).
