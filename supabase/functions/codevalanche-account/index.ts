@@ -49,8 +49,8 @@ Deno.serve(async (req) => {
     let patch;try{patch=normalizeProfile(body);}catch{return respond({error:'Invalid profile'},400);}
     const result=await service.auth.admin.updateUserById(user.id,{user_metadata:{...user.user_metadata,...patch}});if(result.error)throw new Error('Profile update failed');return respond({ok:true});
    }
-   case 'sign-out-others': {
-    const result=await service.auth.admin.signOut(token,'others');if(result.error)throw new Error('Sign out failed');return respond({ok:true});
+   case 'sign-out-current': case 'sign-out-others': {
+    const result=await service.auth.admin.signOut(token,body.action==='sign-out-current'?'local':'others');if(result.error)throw new Error('Sign out failed');return respond({ok:true});
    }
    case 'revoke-session': {
     if(!uuid.test(body.sessionId||'') || !sessions.some(s=>s.id===body.sessionId)) return respond({error:'Session not found'},404);
@@ -89,7 +89,3 @@ Deno.serve(async (req) => {
   }
  } catch { return respond({error:'Account service unavailable'},503); }
 });
-
-
-
-

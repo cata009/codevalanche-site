@@ -21,3 +21,5 @@ test('cannot revoke another user session',async()=>{writes=[];assert.equal((awai
 test('deletion needs explicit confirmation',async()=>{writes=[];assert.equal((await handler(request('request-deletion'))).status,400);assert.equal(writes.length,0)});
 test('invalid authentication never reaches account response',async()=>{invalid=true;try{assert.equal((await handler(request('get-account'))).status,401)}finally{invalid=false}});
 test('oversized request rejected',async()=>{assert.equal((await handler(request('get-account',{junk:'x'.repeat(17000)}))).status,413)});
+
+test('sign-out-current uses provider local revocation',async()=>{let scope;db.auth.admin.signOut=async(token,value)=>{scope=value;return {error:null}};assert.equal((await handler(request('sign-out-current'))).status,200);assert.equal(scope,'local')});

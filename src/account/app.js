@@ -1,21 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
-import { safeError, identityLabels } from './helpers.js'
+import { safeError, identityLabels, authCallback } from './helpers.js'
 const $ = (id) => document.getElementById(id)
 const config = window.CODEVALANCHE_CONFIG
 const client = createClient(config.supabaseUrl, config.supabasePublishableKey, { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true } })
-const incomingId = new URL(location.href).searchParams.get('authorization_id')
-const authorizationId = incomingId && /^[a-zA-Z0-9_-]{1,200}$/.test(incomingId) ? incomingId : null
-const redirectTo = new URL('/account/', location.origin)
-if (authorizationId) redirectTo.searchParams.set('authorization_id', authorizationId)
+const redirectTo = authCallback(location.href)
+const authorizationId = redirectTo.searchParams.get('authorization_id')
 const recoveryRedirect = new URL(redirectTo); recoveryRedirect.searchParams.set('flow', 'recovery')
 let mode = 'signin', user = null, recovery = new URL(location.href).searchParams.get('flow') === 'recovery', busy = false
 function notice(message = '', error = false) { $('status').textContent = message; $('status').dataset.error = String(error) }
 function setMode(next) {
   mode = next
   const reset = next === 'reset', signup = next === 'signup', update = next === 'update'
-  $('auth-title').textContent = reset ? 'Reset password' : signup ? 'Create account' : update ? 'Choose a new password' : 'Sign in'
+  $('auth-title').textContent = reset ? 'Reset password' : signup ? 'Create your account' : update ? 'Choose a new password' : 'Sign in'
   $('auth-submit').textContent = reset ? 'Send reset link' : signup ? 'Create account' : update ? 'Save password' : 'Sign in'
-  $('auth-description').textContent = reset ? 'We’ll email you a link to choose a new password.' : signup ? 'Create your Codevalanche account with email.' : update ? 'Choose a password with at least 8 characters.' : 'Your account across desktop, mobile and web.'
+  $('auth-description').textContent = reset ? 'We’ll email you a link to choose a new password.' : signup ? 'Your Codevalanche account.' : update ? 'Choose a password with at least 8 characters.' : 'Welcome back to Codevalanche.'
+  $('social-auth').hidden = reset || update
+  $('forgot-row').hidden = next !== 'signin'; $('signup-prompt').hidden = next !== 'signin'
+  $('password').type = 'password'; $('password-toggle').setAttribute('aria-label', 'Show password'); $('password-toggle').setAttribute('aria-pressed', 'false')
   $('name-field').hidden = !signup; $('email-field').hidden = update; $('email').required = !update
   $('password-field').hidden = reset; $('password').required = !reset; $('password').autocomplete = signup || update ? 'new-password' : 'current-password'
   document.querySelectorAll('[data-mode]').forEach(button => button.hidden = update || (next === 'signin' ? button.dataset.mode === 'signin' : button.dataset.mode !== 'signin'))
@@ -53,6 +54,17 @@ async function render(session) {
     if (account.deletion?.scheduledFor) notice(`Account deletion requested for ${new Date(account.deletion.scheduledFor).toLocaleDateString()}.`)
   } catch { list('sessions', ['Session details are temporarily unavailable. You can still sign out.']) }
 }
+$('password-toggle').addEventListener('click', () => {
+  const show = $('password').type === 'password'; $('password').type = show ? 'text' : 'password'
+  $('password-toggle').setAttribute('aria-label', show ? 'Hide password' : 'Show password'); $('password-toggle').setAttribute('aria-pressed', String(show))
+})
+$('google-signin').addEventListener('click', () => void action(async () => {
+  const response = await fetch(`${config.supabaseUrl}/auth/v1/settings`, { headers: { apikey: config.supabasePublishableKey } })
+  const settings = response.ok ? await response.json() : null
+  if (!settings?.external?.google) { notice('Google sign-in is not available yet. Use email to continue.', true); return }
+  const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: redirectTo.href } })
+  if (error) throw error
+}))
 document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { notice(); setMode(button.dataset.mode) }))
 $('auth-form').addEventListener('submit', event => { event.preventDefault(); void action(async () => {
   const email = $('email').value.trim(), password = $('password').value

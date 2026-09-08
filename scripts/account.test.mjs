@@ -17,3 +17,11 @@ test('account uses PKCE, no raw HTML rendering and hosted bundle', () => {
   const html = readFileSync(new URL('../src/account/index.html',import.meta.url),'utf8')
   assert.doesNotMatch(html, /https:\/\/.*\.js/)
 })
+
+test('Google callback preserves only validated consent context on same origin', async () => {
+  const { authCallback } = await import('../src/account/helpers.js')
+  assert.equal(authCallback('https://codevalanche.com/account/authorize/?authorization_id=abc-123_xyz&redirect_to=https://evil.test&code=secret&flow=recovery').href, 'https://codevalanche.com/account/?authorization_id=abc-123_xyz')
+  for (const id of ['https://evil.test','../bad','<script>', 'x'.repeat(201)]) {
+    assert.equal(authCallback('https://codevalanche.com/account/?authorization_id='+encodeURIComponent(id)).href, 'https://codevalanche.com/account/')
+  }
+})

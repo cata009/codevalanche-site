@@ -5,3 +5,10 @@ export function safeError(error) {
 export function identityLabels(identities = []) {
   return [...new Set(identities.map(identity => identity.provider).filter(value => typeof value === 'string'))].map(provider => ({ email: 'Email and password', google: 'Google', github: 'GitHub', apple: 'Apple' })[provider] || provider)
 }
+export function authCallback(currentHref) {
+  const current = new URL(currentHref)
+  const callback = new URL('/account/', current.origin)
+  const id = current.searchParams.get('authorization_id')
+  if (id && /^[a-zA-Z0-9_-]{1,200}$/.test(id)) callback.searchParams.set('authorization_id', id)
+  return callback
+}
