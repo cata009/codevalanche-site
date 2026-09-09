@@ -12,6 +12,17 @@ await rm(destination, { recursive: true, force: true })
 await mkdir(destination, { recursive: true })
 await cp(source, destination, { recursive: true, errorOnExist: false })
 
+// Render the same navigation on every marketing page so account access cannot drift.
+const sharedHeader = await readFile(path.join(source, "partials/header.html"), "utf8")
+for (const page of ["index.html", "changelog.html", "privacy.html", "terms.html"]) {
+  const output = path.join(destination, page)
+  const html = await readFile(output, "utf8")
+  const header = page === "changelog.html"
+    ? sharedHeader.replaceAll('href="/changelog.html"', 'href="/changelog.html" aria-current="page"')
+    : sharedHeader
+  await writeFile(output, html.replace("<!-- site-header -->", header))
+}
+
 await build({ entryPoints: [path.join(source, "account/app.js")], outfile: path.join(destination, "account/app.js"), bundle: true, format: "esm", minify: true, target: ["es2022"], legalComments: "eof" })
 // Version the completed bundle, styles and public configuration so a new page
 // cannot reuse an older cached account implementation after deployment.

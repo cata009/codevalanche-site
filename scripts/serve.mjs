@@ -10,7 +10,7 @@ const port = Number(process.env.CODEVALANCHE_PORT || 4173)
 
 createServer(async (request, response) => {
   const pathname = decodeURIComponent(new URL(request.url || "/", "http://localhost").pathname)
-  const relative = pathname === "/" ? "index.html" : pathname.slice(1)
+  const relative = pathname.endsWith("/") ? `${pathname.slice(1)}index.html` : pathname.slice(1)
   const file = path.resolve(root, relative)
   if (!file.startsWith(`${root}${path.sep}`) && file !== root) { response.writeHead(400); response.end("Bad request"); return }
   try { const body = await readFile(file); response.writeHead(200, { "Content-Type": mime[path.extname(file)] || "application/octet-stream", "Cache-Control": "no-store" }); response.end(body) }
